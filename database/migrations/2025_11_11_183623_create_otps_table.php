@@ -14,7 +14,13 @@ return new class extends Migration
         Schema::create('otps', function (Blueprint $table) {
             $table->uuid('id');
             $table->foreignUuid('user_id');
-            $table->string('otp');
+            $table->string('otp_code');
+            $table->string('phone_number');
+            $table->text('session_token')->nullable();
+            $table->dateTime('expires_at');
+            $table->dateTime('verified_at')->nullable();
+            $table->integer('attempts')->default(0);
+            $table->string('purpose');
             $table->timestamps();
         });
     }
