@@ -5,10 +5,9 @@ namespace App\DTOs;
 use Illuminate\Http\Request;
 
 /**
- * Data Transfer Object for user registration
- * This encapsulates the registration data and provides a clean way to pass it between layers
+ * DTO for completing registration after OTP verification
  */
-class RegisterUserDTO
+class CompleteRegistrationDTO
 {
     public function __construct(
         public string $fullname,
@@ -28,7 +27,7 @@ class RegisterUserDTO
         public string $badge,
     ) {}
 
-    /**
+ /**
      * Create DTO from HTTP Request
      * This method handles the transformation from raw request data to structured DTO
      */
@@ -52,8 +51,7 @@ class RegisterUserDTO
             badge: $request->input('badge', ''),
         );
     }
-
-    /**
+     /**
      * Convert DTO to array for database operations
      */
     public function to_array(): array
