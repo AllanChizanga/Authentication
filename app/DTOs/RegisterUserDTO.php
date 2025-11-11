@@ -32,7 +32,7 @@ class RegisterUserDTO
      * Create DTO from HTTP Request
      * This method handles the transformation from raw request data to structured DTO
      */
-    public static function fromRequest(Request $request): self
+    public static function from_request(Request $request): self
     {
         return new self(
             fullname: $request->input('fullname'),
@@ -56,7 +56,7 @@ class RegisterUserDTO
     /**
      * Convert DTO to array for database operations
      */
-    public function toArray(): array
+    public function to_array(): array
     {
         return [
             'name' => $this->fullname,

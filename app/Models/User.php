@@ -58,4 +58,44 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+     /**
+     * Find user by phone number
+     */
+    public static function findByPhoneNumber(string $phoneNumber): ?self
+    {
+        return static::where('phone_number', $phoneNumber)->first();
+    }
+
+    /**
+     * Check if phone number exists
+     */
+    public static function phoneNumberExists(string $phoneNumber): bool
+    {
+        return static::where('phone_number', $phoneNumber)->exists();
+    }
+
+    /**
+     * Check if user has verified phone
+     */
+    public function hasVerifiedPhone(): bool
+    {
+        return !is_null($this->phone_verified_at);
+    }
+
+    /**
+     * Mark phone as verified
+     */
+    public function markPhoneAsVerified(): bool
+    {
+        return $this->update(['phone_verified_at' => now()]);
+    }
+
+    /**
+     * OTP verification relationships
+     */
+    public function otpVerifications()
+    {
+        return $this->hasMany(Otp::class);
+    }
 }

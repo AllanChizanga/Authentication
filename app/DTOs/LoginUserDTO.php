@@ -18,7 +18,7 @@ class LoginUserDTO
     /**
      * Create DTO from HTTP Request
      */
-    public static function fromRequest(Request $request): self
+    public static function from_request(Request $request): self
     {
         return new self(
             phone_number: $request->input('phone_number'),
@@ -29,7 +29,7 @@ class LoginUserDTO
     /**
      * Convert to array for authentication
      */
-    public function toArray(): array
+    public function to_array(): array
     {
         return [
             'phone_number' => $this->phone_number,
