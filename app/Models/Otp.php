@@ -56,7 +56,7 @@ class Otp extends Model
     /**
      * Mark OTP as verified
      */
-    public function markAsVerified(): bool
+    public function mark_as_verified(): bool
     {
         return $this->update(['verified_at' => now()]);
     }
@@ -64,7 +64,7 @@ class Otp extends Model
     /**
      * Increment attempt count
      */
-    public function incrementAttempts(): bool
+    public function increment_attempts(): bool
     {
         return $this->increment('attempts');
     }

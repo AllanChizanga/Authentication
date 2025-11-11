@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('otps', function (Blueprint $table) {
             $table->uuid('id');
-            $table->foreignUuid('user_id');
+            $table->foreignUuid('user_id')->nullable();
             $table->string('otp_code');
             $table->string('phone_number');
             $table->text('session_token')->nullable();

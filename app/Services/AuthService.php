@@ -6,50 +6,30 @@ use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
-/**
- * Service handling authentication business logic
- * Separates auth logic from controller and actions
- */
 class AuthService
 {
     public function __construct(
-        private TokenService $token_service
+        private TokenService $token_service,
+        private OtpService $otp_service
     ) {}
 
     /**
-     * Register a new user with the provided data
-     * Returns the created user model
+     * Register user with phone verification
      */
-    public function register_user(array $user_data): User
+    public function register_user_with_phone(array $user_data, string $phone_number): User
     {
         return User::create([
             'name' => $user_data['name'],
             'email' => $user_data['email'],
-            'password' => Hash::make($user_data['password']), // Hash password here
+            'phone_number' => $phone_number,
+            'password' => Hash::make($user_data['password']),   
+
+            'phone_verified_at' => now(), // Mark phone as verified
         ]);
     }
 
     /**
-     * Authenticate user with credentials
-     * Throws ValidationException if credentials are invalid
-     */
-    public function authenticate_user(array $credentials): User
-    {
-        $user = User::where('phone', $credentials['phone_number'])->first();
-
-        if (!$user) {
-            throw ValidationException::withMessages([
-                'phone' => ['The provided credentials are incorrect.'],
-            ]);
-        }
-        //check otp logic can be added here
-
-        return $user;
-    }
-
-    /**
      * Create standardized authentication response
-     * Returns user data with access token
      */
     public function create_auth_response(User $user): array
     {
@@ -58,8 +38,11 @@ class AuthService
         return [
             'user' => [
                 'id' => $user->id,
-                'fullname' => $user->fullname,
+                'name' => $user->name,
                 'email' => $user->email,
+                'phone_number' => $user->phone_number,
+                'phone_verified_at' => $user->phone_verified_at,
+                'email_verified_at' => $user->email_verified_at,
             ],
             'token' => $token->plainTextToken,
         ];
@@ -71,5 +54,33 @@ class AuthService
     public function get_user_by_id(int $user_id): ?User
     {
         return User::find($user_id);
+    }
+
+    /**
+     * Validate phone number availability for registration
+     */
+    public function validate_phone_for_registration(string $phone_number): void
+    {
+        if (User::phoneNumberExists($phone_number)) {
+            throw ValidationException::withMessages([
+                'phone_number' => ['This phone number is already registered.'],
+            ]);
+        }
+    }
+
+    /**
+     * Validate phone number exists for login
+     */
+    public function validate_phone_for_login(string $phone_number): User
+    {
+        $user = User::findByPhoneNumber($phone_number);
+        
+        if (!$user) {
+            throw ValidationException::withMessages([
+                'phone_number' => ['No account found with this phone number.'],
+            ]);
+        }
+
+        return $user;
     }
 }

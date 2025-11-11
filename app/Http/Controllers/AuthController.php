@@ -2,54 +2,154 @@
 
 namespace App\Http\Controllers;
 
-use App\DTOs\LoginUserDTO;
-use Illuminate\Http\Request;
-use App\DTOs\RegisterUserDTO;
-use App\Services\AuthService;
+use App\Actions\Auth\{
+    InitiateRegistrationAction,
+    VerifyRegistrationOtpAction,
+    CompleteRegistrationAction,
+    InitiateLoginAction,
+    VerifyLoginOtpAction,
+    CompleteLoginAction
+};
+use App\DTOs\{
+    InitiateAuthDTO,
+    VerifyOtpDTO,
+    CompleteRegistrationDTO,
+    CompleteLoginDTO
+};
 use App\Services\TokenService;
 use Illuminate\Http\JsonResponse;
-use App\Actions\Auth\LoginUserAction;
-use App\Http\Requests\LoginUserRequest;
-use App\Actions\Auth\RegisterUserAction;
+use Illuminate\Http\Request;
 use Illuminate\Validation\Rules\Password;
-use App\Http\Requests\RegisterUserRequest;
 
 class AuthController extends Controller
 {
+    protected $initiateRegistrationAction;
+    protected $verifyRegistrationOtpAction;
+
+    public function __construct(InitiateRegistrationAction $initiateRegistrationAction, VerifyRegistrationOtpAction $verifyRegistrationOtpAction)
+    {
+        $this->initiateRegistrationAction = $initiateRegistrationAction;
+        $this->verifyRegistrationOtpAction = $verifyRegistrationOtpAction;
+
+    }
     /**
-     * Register a new user
-     * Uses RegisterUserAction to handle the registration process
+     * Initiate registration - Step 1: Send OTP to phone
      */
-    public function register(RegisterUserRequest $request, RegisterUserAction $register_user_action): JsonResponse
-     {
-        // Validate incoming request data
-        $data = $request->validated();
-
-        // Create DTO from validated request
-        $registerDTO = RegisterUserDTO::from_request($data);
+    public function initiateRegistration(Request $request): JsonResponse 
+    {
         
-        // Execute registration action
-        $response = $register_user_action->execute($registerDTO);
+       
 
-        // Return JSON response with 201 status
-        return response()->json([
-            'message' => 'User registered successfully'], 200);
+        $request->validate([
+            'phone_number' => 'required|string|max:20',
+        ]);
+
+        $dto = new InitiateAuthDTO(
+            phone_number: $request->input('phone_number'),
+            purpose: 'registration'
+        );
+        
+        $response = $this->initiateRegistrationAction->execute($dto);
+
+    return response()->json(['data'=>$response]);
     }
 
     /**
-     * Login user
-     * Uses LoginUserAction to handle authentication
+     * Verify registration OTP - Step 2: Verify OTP code
      */
-    public function login(LoginUserRequest $request,LoginUserAction $login_user_action): JsonResponse 
-    {
-        // Validate login credentials
-        $data = $request->validated();
+    public function verifyRegistrationOtp(Request $request): JsonResponse {
+        $request->validate([
+            'phone_number' => 'required|string|max:20',
+            'otp_code' => 'required|string|size:6',
+            'session_token' => 'required|string',
+        ]);
 
-        // Create DTO from request
-        $loginDTO = LoginUserDTO::from_request($data);
         
-        // Execute login action
-        $response = $login_user_action->execute($loginDTO);
+        $dto = VerifyOtpDTO::from_request($request);
+        
+        $response = $this->verifyRegistrationOtpAction->execute($dto);
+        
+        return response()->json(['message' => $response]);
+       
+    }
+
+    /**
+     * Complete registration - Step 3: Create user account
+     */
+    public function completeRegistration(Request $request, CompleteRegistrationAction $completeRegistrationAction ): JsonResponse 
+    {
+        $request->validate([
+            'session_token' => 'required|string',
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users',
+            'password' => ['required', 'confirmed', Password::defaults()],
+        ]);
+
+        $dto = CompleteRegistrationDTO::from_request($request);
+
+        $response = $completeRegistrationAction->execute($dto);
+
+        return response()->json([
+            'message' => 'Registration completed successfully',
+            ...$response
+        ], 201);
+    }
+
+    /**
+     * Initiate login - Step 1: Send OTP to phone
+     */
+    public function initiateLogin(
+        Request $request,
+        InitiateLoginAction $initiateLoginAction
+    ): JsonResponse {
+        $request->validate([
+            'phone_number' => 'required|string|max:20',
+        ]);
+
+        $dto = new InitiateAuthDTO(
+            phone_number: $request->input('phone_number'),
+            purpose: 'login'
+        );
+
+        $response = $initiateLoginAction->execute($dto);
+
+        return response()->json($response);
+    }
+
+    /**
+     * Verify login OTP - Step 2: Verify OTP code
+     */
+    public function verifyLoginOtp(
+        Request $request,
+        VerifyLoginOtpAction $verifyLoginOtpAction
+    ): JsonResponse {
+        $request->validate([
+            'phone_number' => 'required|string|max:20',
+            'otp_code' => 'required|string|size:6',
+            'session_token' => 'required|string',
+        ]);
+
+        $dto = VerifyOtpDTO::from_request($request);
+
+        $response = $verifyLoginOtpAction->execute($dto);
+
+        return response()->json($response);
+    }
+
+    /**
+     * Complete login - Step 3: Authenticate user
+     */
+    public function completeLogin(
+        Request $request,
+        CompleteLoginAction $completeLoginAction
+    ): JsonResponse {
+        $request->validate([
+            'session_token' => 'required|string',
+        ]);
+
+        $dto = CompleteLoginDTO::from_request($request);
+
+        $response = $completeLoginAction->execute($dto);
 
         return response()->json([
             'message' => 'Login successful',
@@ -58,12 +158,10 @@ class AuthController extends Controller
     }
 
     /**
-     * Logout user (revoke current token)
-     * Uses TokenService to handle token revocation
+     * Logout user
      */
     public function logout(Request $request, TokenService $tokenService): JsonResponse
     {
-        // Delete current access token
         $tokenService->delete_current_token($request->user());
 
         return response()->json([
@@ -72,7 +170,7 @@ class AuthController extends Controller
     }
 
     /**
-     * Get authenticated user data
+     * Get authenticated user
      */
     public function user(Request $request): JsonResponse
     {
@@ -81,41 +179,10 @@ class AuthController extends Controller
                 'id' => $request->user()->id,
                 'name' => $request->user()->name,
                 'email' => $request->user()->email,
+                'phone_number' => $request->user()->phone_number,
+                'phone_verified_at' => $request->user()->phone_verified_at,
                 'email_verified_at' => $request->user()->email_verified_at,
             ]
-        ]);
-    }
-
-    /**
-     * Refresh authentication token
-     * Revokes current token and issues new one
-     */
-    public function refresh(Request $request, TokenService $tokenService): JsonResponse
-    {
-        $user = $request->user();
-        
-        // Delete current token
-        $tokenService->delete_current_token($user);
-        
-        // Create new token using AuthService
-        $authService = app(AuthService::class);
-        $response = $authService->create_auth_response($user);
-
-        return response()->json([
-            'message' => 'Token refreshed successfully',
-            ...$response
-        ]);
-    }
-
-    /**
-     * Logout from all devices (revoke all tokens)
-     */
-    public function logoutAllDevices(Request $request, TokenService $tokenService): JsonResponse
-    {
-        $tokenService->delete_all_tokens($request->user());
-
-        return response()->json([
-            'message' => 'Successfully logged out from all devices'
         ]);
     }
 }

@@ -21,18 +21,20 @@ class OtpService
      */
     public function generate_otp(string $phone_number, string $purpose = 'registration', ?User $user = null): array
     {
+        
         $phone_number = $this->clean_phone_number($phone_number);
-
+        
         // Validate purpose
         if (!in_array($purpose, ['registration', 'login'])) {
             throw new \InvalidArgumentException('Invalid OTP purpose');
         }
-
+        
         // Check rate limiting
         $this->check_rate_limit($phone_number, $purpose);
-
+        
         // For registration, check if phone already exists
-        if ($purpose === 'registration' && User::phone_number_exists($phone_number)) {
+
+        if ($purpose === 'registration' && User::where('phone',$phone_number)->exists()) {
             throw ValidationException::withMessages([
                 'phone_number' => ['This phone number is already registered.'],
             ]);
@@ -40,7 +42,7 @@ class OtpService
 
         // For login, check if user exists and get user ID
         if ($purpose === 'login') {
-            $user = User::find_by_phone_number($phone_number);
+            $user = User::where('phone',$phone_number)->first();
             if (!$user) {
                 throw ValidationException::withMessages([
                     'phone_number' => ['No account found with this phone number.'],
@@ -51,27 +53,29 @@ class OtpService
         // Generate OTP code
         $otp_code = $this->generate_otp_code();
         
+    
         // Create session token
         $session_token = Str::uuid()->toString();
-        
+       
         // Create OTP record
         $otp_data = [
             'phone_number' => $phone_number,
             'otp_code' => $otp_code,
             'session_token' => $session_token,
-            'expires_at' => now()->add_minutes($this->otp_expiry_minutes),
+            'expires_at' => now()->addMinutes($this->otp_expiry_minutes),
             'purpose' => $purpose,
         ];
-
+ 
         if ($user) {
             $otp_data['user_id'] = $user->id;
         }
 
+        
         $otp_verification = Otp::create($otp_data);
-
+        
         // Send OTP via SMS
-        $this->send_otp_sms($phone_number, $otp_code, $purpose);
-
+      //  $this->send_otp_sms($phone_number, $otp_code, $purpose);
+        
         // Set rate limit
         $this->set_rate_limit($phone_number, $purpose);
 
@@ -80,19 +84,20 @@ class OtpService
             'expires_in' => $this->otp_expiry_minutes * 60,
             'message' => 'OTP sent successfully',
             'purpose' => $purpose,
+            'otp_code'=>$otp_code,
         ];
     }
 
     /**
      * Verify OTP for registration or login
      */
-    public function verify_otp(string $phone_number, string $otp_oode, string $session_token, string $purpose): Otp
+    public function verify_otp(string $phone_number, string $otp_code, string $session_token, string $purpose): Otp
     {
+    
         $phone_number = $this->clean_phone_number($phone_number);
-
+        
         $otp_verification = Otp::where('session_token', $session_token)
-            ->forPhoneAndPurpose($phone_number, $purpose)
-            ->valid()
+            ->where('phone_number', $phone_number)
             ->first();
 
         if (!$otp_verification) {
@@ -101,9 +106,11 @@ class OtpService
             ]);
         }
 
+       
         // Increment attempts
         $otp_verification->increment_attempts();
 
+       
         // Check if max attempts exceeded
         if ($otp_verification->attempts >= $this->max_attempts) {
             $otp_verification->delete();
@@ -111,7 +118,7 @@ class OtpService
                 'otp_code' => ['Too many attempts. Please request a new OTP.'],
             ]);
         }
-
+        
         // Verify OTP code
         if ($otp_verification->otp_code !== $otp_code) {
             throw ValidationException::withMessages([
@@ -161,7 +168,7 @@ class OtpService
     /**
      * Generate numeric OTP code
      */
-    private function generateOtpCode(): string
+    private function generate_otp_code(): string
     {
         $min = pow(10, $this->otp_length - 1);
         $max = pow(10, $this->otp_length) - 1;
@@ -172,9 +179,9 @@ class OtpService
     /**
      * Check rate limiting for phone number and purpose
      */
-    private function checkRateLimit(string $phoneNumber, string $purpose): void
+    private function check_rate_limit(string $phone_number, string $purpose): void
     {
-        $key = "otp_rate_limit:{$phoneNumber}:{$purpose}";
+        $key = "otp_rate_limit:{$phone_number}:{$purpose}";
         $attempts = Cache::get($key, 0);
 
         if ($attempts >= 5) {
@@ -187,23 +194,23 @@ class OtpService
     /**
      * Set rate limit for phone number and purpose
      */
-    private function setRateLimit(string $phoneNumber, string $purpose): void
+    private function set_rate_limit(string $phone_number, string $purpose): void
     {
-        $key = "otp_rate_limit:{$phoneNumber}:{$purpose}";
+        $key = "otp_rate_limit:{$phone_number}:{$purpose}";
         Cache::put($key, Cache::get($key, 0) + 1, now()->addHour());
     }
 
     /**
      * Send OTP via SMS
      */
-    private function sendOtpSms(string $phoneNumber, string $otpCode, string $purpose): void
+    private function send_otp_sms(string $phone_number, string $otp_code, string $purpose): void
     {
         $message = $purpose === 'registration' 
-            ? "Your registration verification code is: {$otpCode}. Valid for 10 minutes."
-            : "Your login verification code is: {$otpCode}. Valid for 10 minutes.";
+            ? "Your registration verification code is: {$otp_code}. Valid for 10 minutes."
+            : "Your login verification code is: {$otp_code}. Valid for 10 minutes.";
 
         // Implement your SMS service here
-        \Log::info("SMS to {$phoneNumber}: {$message}");
+        \Log::info("SMS to {$phone_number}: {$message}");
         
         // Example with Twilio:
         // Twilio::message($phoneNumber, $message);
@@ -212,8 +219,8 @@ class OtpService
     /**
      * Clean up expired OTPs
      */
-    public function cleanupExpiredOtps(): void
+    public function cleanup_expired_otps(): void
     {
-        OtpVerification::where('expires_at', '<', now())->delete();
+        Otp::where('expires_at', '<', now())->delete();
     }
 }
