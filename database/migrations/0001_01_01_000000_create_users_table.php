@@ -27,6 +27,7 @@ return new class extends Migration
             $table->enum('payment_preference', ['cash', 'vpay', 'ecocash', 'bank','innbucks','omari','zipit']);
             $table->boolean('is_activated');
             $table->enum('badge', ['red', 'green'])->nullable();
+            $table->string('password');
             $table->rememberToken();
             $table->timestamps();
         });
