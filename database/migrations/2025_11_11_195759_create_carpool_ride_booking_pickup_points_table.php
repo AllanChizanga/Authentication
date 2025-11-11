@@ -1,0 +1,31 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::create('carpool_ride_booking_pickup_points', function (Blueprint $table) {
+            $table->uuid('id');
+            $table->foreignUuid('carpool_ride_booking_id');
+            $table->string('pickup_point_name');
+            $table->decimal('pickup_point_lat', 10, 7)->nullable();
+            $table->decimal('pickup_point_long', 10, 7)->nullable();
+            $table->timestamps();
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('carpool_ride_booking_pickup_points');
+    }
+};
