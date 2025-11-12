@@ -25,8 +25,8 @@ Route::prefix('auth')->group(function () {
         Route::get('/user', [AuthController::class, 'user']);
     //Check Authentication
     Route::post('/verify-token', [AuthController::class, 'checkAuth']);
-    Route::post('/verify-driver', [CheckAuthController::class, 'isDriver']);
-    Route::post('/verify-isactive',[CheckAuthController::class, 'isActivated']);
-    Route::post('/verify-badge',[CheckAuthController::class, 'getBadge']);
+    // Route::post('/verify-driver', [CheckAuthController::class, 'isDriver']);
+    // Route::post('/verify-isactive',[CheckAuthController::class, 'isActivated']);
+    // Route::post('/verify-badge',[CheckAuthController::class, 'getBadge']);
     });
 });
