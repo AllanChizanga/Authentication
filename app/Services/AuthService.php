@@ -262,4 +262,136 @@ class AuthService
         }
     }
 
+
+
+     public function validateToken_test(string $token): bool
+    {
+        try {
+            Log::debug('Sanctum Token Validation', ['token_prefix' => substr($token, 0, 10) . '...']);
+
+            $accessToken = PersonalAccessToken::findToken($token);
+            
+            if (!$accessToken) {
+                Log::debug('Sanctum: Token not found in personal_access_tokens table');
+                return false;
+            }
+
+            if ($accessToken->expires_at && $accessToken->expires_at->isPast()) {
+                Log::debug('Sanctum: Token expired', ['expires_at' => $accessToken->expires_at]);
+                $accessToken->delete();
+                return false;
+            }
+
+            $user = $accessToken->tokenable;
+            
+            if (!$user) {
+                Log::debug('Sanctum: No user associated with token');
+                return false;
+            }
+
+            // Update last used at timestamp
+            $accessToken->forceFill([
+                'last_used_at' => now(),
+            ])->save();
+
+            Log::debug('Sanctum: Token validated successfully', [
+                'user_id' => $user->id,
+                'token_id' => $accessToken->id
+            ]);
+
+            return true;
+
+        } catch (\Exception $e) {
+            Log::error('Sanctum token validation failed: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    public function getUserDetailsFromToken(string $token): ?array
+    {
+        try {
+            $accessToken = PersonalAccessToken::findToken($token);
+            
+            if (!$accessToken) {
+                return null;
+            }
+
+            $user = $accessToken->tokenable;
+
+            if (!$user) {
+                return null;
+            }
+
+            // Check if user is a driver (you might need to adjust this logic)
+            $isDriver = $this->checkIfUserIsDriver($user);
+            
+            return [
+                'is_driver' => $isDriver,
+                'badge' => $user->badge ?? 'red',
+                'is_active' => $user->is_activated ?? false,
+                'user_details' => [
+                    'id' => $user->id,
+                    'name' => $user->fullname,
+                    'email' => $user->email,
+                    'phone' => $user->phone,
+                    'country' => $user->country,
+                    'city' => $user->city,
+                    'profile_photo' => $user->profile_photo,
+                ]
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('Get user details from token failed: ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Check if user is a driver - adjust this based on your business logic
+     */
+    private function checkIfUserIsDriver(User $user): bool
+    {
+        // Method 1: Check if user has a driver profile (if you have a drivers table)
+        // return \App\Models\Driver::where('user_id', $user->id)->exists();
+        
+        // Method 2: Check based on user role or type
+        // return $user->user_type === 'driver';
+        
+        // Method 3: Check if user has driver-specific fields filled
+        // return !empty($user->license_url) || !empty($user->vehicle_info);
+        
+        // Method 4: Check a specific driver flag
+        // return $user->is_driver ?? false;
+
+        // For now, return true if user has badge (adjust based on your logic)
+        return !empty($user->badge);
+    }
+
+    /**
+     * Get complete authentication status
+     */
+    public function getAuthenticationStatus(string $token): array
+    {
+        $isAuthenticated = $this->validateToken($token);
+        
+        if (!$isAuthenticated) {
+            return [
+                'authenticated' => false,
+                'is_driver' => false,
+                'badge' => 'red',
+                'is_active' => false
+            ];
+        }
+
+        $userDetails = $this->getUserDetailsFromToken($token);
+
+        return [
+            'authenticated' => true,
+            'is_driver' => $userDetails['is_driver'] ?? false,
+            'badge' => $userDetails['badge'] ?? 'red',
+            'is_active' => $userDetails['is_active'] ?? false,
+            'user' => $userDetails['user_details'] ?? null
+        ];
+    }
+
 }

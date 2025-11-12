@@ -20,9 +20,9 @@ Route::prefix('auth')->group(function () {
 
     //Check Authentication
     Route::post('/verify-token', [CheckAuthController::class, 'checkAuth']);
-    Route::get('/verify-driver', [CheckAuthController::class, 'isDriver']);
-    Route::get('/verify-isactive',[CheckAuthController::class, 'isActivated']);
-    Route::get('/verify-badge',[CheckAuthController::class, 'getBadge']);
+    Route::post('/verify-driver', [CheckAuthController::class, 'isDriver']);
+    Route::post('/verify-isactive',[CheckAuthController::class, 'isActivated']);
+    Route::post('/verify-badge',[CheckAuthController::class, 'getBadge']);
     
     // Protected routes
     Route::middleware('auth:sanctum')->group(function () {

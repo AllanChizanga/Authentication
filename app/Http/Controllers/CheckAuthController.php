@@ -13,32 +13,95 @@ class CheckAuthController extends Controller
         private AuthService $authService
     ) {}
 
+    /**
+     * Simple authentication check returning only true/false
+     */
     public function checkAuth(Request $request): JsonResponse
     {
-        // Get token from Authorization header or request body
         $token = $request->bearerToken() ?? $request->input('token');
         
-        Log::debug('Auth Check - Received token', [
-            'token_prefix' => $token ? substr($token, 0, 10) . '...' : 'NULL',
-            'source' => $request->bearerToken() ? 'header' : ($request->input('token') ? 'body' : 'none')
-        ]);
-
-        // If no token provided, return false
         if (!$token) {
-            Log::debug('Auth Check - No token provided');
             return response()->json(false);
         }
 
-        // Validate token using Sanctum
         $isAuthenticated = $this->authService->validateToken($token);
         
-        Log::debug('Auth Check - Sanctum validation result', ['authenticated' => $isAuthenticated]);
-
         return response()->json($isAuthenticated);
     }
 
     /**
-     * Debug endpoint to check token details
+     * Detailed authentication check with driver status, badge, and active status
+     */
+    public function isDriver(Request $request): JsonResponse
+    {
+        $token = $request->bearerToken() ?? $request->input('token');
+
+        if (!$token) {
+            return response()->json([
+              false
+            ]);
+        }
+
+        $authStatus = $this->authService->getAuthenticationStatus($token);
+
+        return response()->json($authStatus);
+    }
+
+       public function getBadge(Request $request): JsonResponse
+    {
+        $token = $request->bearerToken() ?? $request->input('token');
+
+        if (!$token) {
+            return response()->json([
+                false
+            ]);
+        }
+
+        $isAuthenticated = $this->authService->validateToken($token);
+
+        if (!$isAuthenticated) {
+            return response()->json([
+                false
+            ]);
+        }
+
+        $userDetails = $this->authService->getUserDetailsFromToken($token);
+
+        return response()->json([
+            'badge' => $userDetails['badge'] ?? 'red',
+        ]);
+    }
+
+    /**
+     * Check only isActivated information
+     */
+    public function isActivated(Request $request): JsonResponse
+    {
+        $token = $request->bearerToken() ?? $request->input('token');
+
+        if (!$token) {
+            return response()->json([
+                false
+            ]);
+        }
+
+        $isAuthenticated = $this->authService->validateToken($token);
+
+        if (!$isAuthenticated) {
+            return response()->json([
+                false
+            ]);
+        }
+
+        $userDetails = $this->authService->getUserDetailsFromToken($token);
+
+        return response()->json([
+            'is_active' => $userDetails['is_active'] ?? false
+        ]);
+    }
+
+    /**
+     * Debug endpoint to check all token details
      */
     public function debugToken(Request $request): JsonResponse
     {
@@ -48,47 +111,16 @@ class CheckAuthController extends Controller
             return response()->json(['error' => 'No token provided']);
         }
 
-        $tokenDetails = $this->authService->getTokenDetails($token);
-
-        if (!$tokenDetails) {
-            return response()->json([
-                'error' => 'Token not found in personal_access_tokens table',
-                'token_prefix' => substr($token, 0, 10) . '...',
-                'token_length' => strlen($token),
-            ]);
-        }
-
-        return response()->json($tokenDetails);
-    }
-
-    /**
-     * Check auth with user details
-     */
-    public function checkAuthWithDetails(Request $request): JsonResponse
-    {
-        $token = $request->bearerToken() ?? $request->input('token');
-
-        if (!$token) {
-            return response()->json([
-                'authenticated' => false,
-                'message' => 'No token provided'
-            ]);
-        }
-
-        $isAuthenticated = $this->authService->validateToken($token);
-
-        if ($isAuthenticated) {
-            $user = $this->authService->getUserFromToken($token);
-            
-            return response()->json([
-                'authenticated' => true,
-                'user' => $user
-            ]);
-        }
+        $authStatus = $this->authService->getAuthenticationStatus($token);
+        $userDetails = $this->authService->getUserDetailsFromToken($token);
 
         return response()->json([
-            'authenticated' => false,
-            'message' => 'Invalid or expired token'
+            'token_info' => [
+                'token_prefix' => $token ? substr($token, 0, 10) . '...' : 'NULL',
+                'token_length' => strlen($token),
+            ],
+            'authentication_status' => $authStatus,
+            'user_details' => $userDetails
         ]);
     }
 }
