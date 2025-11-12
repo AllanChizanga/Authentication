@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('vpay_wallet', function (Blueprint $table) {
+        Schema::create('vpay_wallets', function (Blueprint $table) {
             $table->uuid('id')->primary();
 
             // Wallet owner
