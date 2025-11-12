@@ -19,7 +19,7 @@ class CompleteRegistrationAction
     public function execute(CompleteRegistrationDTO $dto): array
     {
         
-        return[$dto->session_token];
+       
         // Verify session is valid for registration
         $otp_session = $this->otp_service->get_verified_registration_session($dto->session_token);
        
@@ -33,7 +33,7 @@ class CompleteRegistrationAction
             user_data: $dto->to_array(),
             phone_number: $otp_session->phone_number
         );
-
+       
         // Create authentication response
         $authResponse = $this->auth_service->create_auth_response($user);
 

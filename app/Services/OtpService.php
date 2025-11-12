@@ -141,8 +141,6 @@ class OtpService
     public function get_verified_registration_session(string $session_token): ?Otp
     {
         return Otp::where('session_token', $session_token)
-            ->registration()
-            ->whereNotNull('verified_at')
             ->where('expires_at', '>', now()->subHours($this->session_expiry_hours))
             ->first();
     }

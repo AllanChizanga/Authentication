@@ -29,10 +29,11 @@ class AuthService
      */
     public function register_user_with_phone(array $user_data, string $phone_number): User
     {
+        
             // Prepare attributes for creation
     $attributes = [
         'fullname'      => trim($user_data['fullname']),
-        'email'         => strtolower($user_data['email']),
+        'email'         => strtolower($user_data['email']) ?? null,
         'phone'         => $phone_number,
         'city' => $user_data['city'],
         'country' => $user_data['country'],

@@ -17,7 +17,9 @@ use App\DTOs\{
     CompleteLoginDTO
 };
 use App\Http\Requests\RegisterUserRequest;
+use App\Models\User;
 use App\Services\TokenService;
+use App\Services\UserService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rules\Password;
@@ -31,12 +33,19 @@ class AuthController extends Controller
 
     protected $initiateLoginAction;
 
-    public function __construct(InitiateRegistrationAction $initiateRegistrationAction, VerifyRegistrationOtpAction $verifyRegistrationOtpAction, CompleteRegistrationAction $completeRegistrationAction, InitiateLoginAction $initiateLoginAction)
+    protected $user_service;
+
+    public function __construct(
+        InitiateRegistrationAction $initiateRegistrationAction, VerifyRegistrationOtpAction $verifyRegistrationOtpAction, 
+        CompleteRegistrationAction $completeRegistrationAction, InitiateLoginAction $initiateLoginAction,
+        UserService $userService,
+        )
     {
         $this->initiateRegistrationAction = $initiateRegistrationAction;
         $this->verifyRegistrationOtpAction = $verifyRegistrationOtpAction;
         $this->completeRegistrationAction = $completeRegistrationAction;
         $this->initiateLoginAction = $initiateLoginAction;
+        $this->user_service = $userService;
 
     }
     /**
@@ -84,17 +93,17 @@ class AuthController extends Controller
     /**
      * Complete registration - Step 3: Create user account
      */
-    public function completeRegistration(RegisterUserRequest $request)
+public function completeRegistration(RegisterUserRequest $request)
 {
 
-
+ 
     $data = $request->validated();
     
     // Use from_array instead of from_request
     $dto = CompleteRegistrationDTO::from_array($data);
-   
+  
     $response = $this->completeRegistrationAction->execute($dto);
-    return response()->json(['data'=>$response]);
+    
     return response()->json([
         'message' => 'Registration completed successfully',
         ...$response
@@ -124,10 +133,7 @@ class AuthController extends Controller
     /**
      * Verify login OTP - Step 2: Verify OTP code
      */
-    public function verifyLoginOtp(
-        Request $request,
-        VerifyLoginOtpAction $verifyLoginOtpAction
-    ): JsonResponse {
+    public function verifyLoginOtp(Request $request, VerifyLoginOtpAction $verifyLoginOtpAction): JsonResponse {
         $request->validate([
             'phone_number' => 'required|string|max:20',
             'otp_code' => 'required|string|size:6',
@@ -177,17 +183,19 @@ class AuthController extends Controller
     /**
      * Get authenticated user
      */
-    public function user(Request $request): JsonResponse
+    public function user(): JsonResponse
     {
+
+        $user = $this->user_service->get_user();
+
         return response()->json([
-            'user' => [
-                'id' => $request->user()->id,
-                'name' => $request->user()->name,
-                'email' => $request->user()->email,
-                'phone_number' => $request->user()->phone_number,
-                'phone_verified_at' => $request->user()->phone_verified_at,
-                'email_verified_at' => $request->user()->email_verified_at,
-            ]
+            'data' => $user
         ]);
+    }
+
+    public function checkAuth(Request $request): JsonResponse
+    {
+        $user = $this->user_service->check_token($request);
+        return $user;
     }
 }

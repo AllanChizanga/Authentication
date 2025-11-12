@@ -12,21 +12,21 @@ Route::prefix('auth')->group(function () {
     Route::post('/register/verify-otp', [AuthController::class, 'verifyRegistrationOtp']);
     Route::post('/register/complete', [AuthController::class, 'completeRegistration']);
 
-    
     // Login flow
     Route::post('/login/initiate', [AuthController::class, 'initiateLogin']);
     Route::post('/login/verify-otp', [AuthController::class, 'verifyLoginOtp']);
     Route::post('/login/complete', [AuthController::class, 'completeLogin']);
 
-    //Check Authentication
-    Route::post('/verify-token', [CheckAuthController::class, 'checkAuth']);
-    Route::post('/verify-driver', [CheckAuthController::class, 'isDriver']);
-    Route::post('/verify-isactive',[CheckAuthController::class, 'isActivated']);
-    Route::post('/verify-badge',[CheckAuthController::class, 'getBadge']);
     
     // Protected routes
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
+
         Route::get('/user', [AuthController::class, 'user']);
+    //Check Authentication
+    Route::post('/verify-token', [AuthController::class, 'checkAuth']);
+    Route::post('/verify-driver', [CheckAuthController::class, 'isDriver']);
+    Route::post('/verify-isactive',[CheckAuthController::class, 'isActivated']);
+    Route::post('/verify-badge',[CheckAuthController::class, 'getBadge']);
     });
 });
