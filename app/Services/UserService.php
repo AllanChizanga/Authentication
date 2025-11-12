@@ -16,10 +16,17 @@ class UserService
         // Logic to retrieve user by ID
     }
 
-    public function check_token($token): JsonResponse
+    public function check_token(){
+        $user=Auth()->user();
+        return ['authenticated' => true];
+   
+    }
+    
+    public function check_token_test($token)
     {
     $token = $token->bearerToken() ?? $token->input('token');
     
+
     if (!$token) {
         return response()->json(false);
     }
