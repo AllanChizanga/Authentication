@@ -8,9 +8,11 @@ use Illuminate\Http\JsonResponse;
 
 class CheckAuthController extends Controller
 {
-    public function __construct(
-        private AuthService $authService
-    ) {}
+
+    protected $auth_service;
+    public function __construct(AuthService $authService) {
+        $this->auth_service = $authService;
+    }
 
     /**
      * Simple authentication check that returns only true/false
@@ -22,11 +24,11 @@ class CheckAuthController extends Controller
 
         // If no token provided, return false
         if (!$token) {
-            return response()->json(false);
+            return response()->json("falseeee");
         }
 
         // Validate token and return boolean result
-        $isAuthenticated = $this->authService->validateToken($token);
+        $isAuthenticated = $this->auth_service->validateToken($token);
 
         return response()->json($isAuthenticated);
     }
