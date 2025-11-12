@@ -29,11 +29,14 @@ class AuthController extends Controller
 
     protected $completeRegistrationAction;
 
-    public function __construct(InitiateRegistrationAction $initiateRegistrationAction, VerifyRegistrationOtpAction $verifyRegistrationOtpAction, CompleteRegistrationAction $completeRegistrationAction)
+    protected $initiateLoginAction;
+
+    public function __construct(InitiateRegistrationAction $initiateRegistrationAction, VerifyRegistrationOtpAction $verifyRegistrationOtpAction, CompleteRegistrationAction $completeRegistrationAction, InitiateLoginAction $initiateLoginAction)
     {
         $this->initiateRegistrationAction = $initiateRegistrationAction;
         $this->verifyRegistrationOtpAction = $verifyRegistrationOtpAction;
         $this->completeRegistrationAction = $completeRegistrationAction;
+        $this->initiateLoginAction = $initiateLoginAction;
 
     }
     /**
@@ -82,15 +85,18 @@ class AuthController extends Controller
      */
     public function completeRegistration(Request $request)
     {
+        
+
         $data = $request->validate([
-    'session_token'      => 'required|string',
+    'session_token'      => 'required',
+    'national_id'        => 'nullable|string|max:50',
     'fullname'           => 'required|string|max:255',
     'phone'              => 'nullable|string|max:20',
     'country'            => 'required|string|max:100',
     'city'               => 'required|string|max:100',
     'email'              => 'nullable|string|email|max:255|unique:users,email',
-    'profile_photo'      => 'nullable|image|max:2048',
-    'id_photo'           => 'nullable|image|max:2048',
+    'profile_photo'      => 'nullable',
+    'id_photo'           => 'nullable',
     'work_location'      => 'nullable|string|max:255',
     'home_location'      => 'nullable|string|max:255',
     'gender'             => 'required|in:male,female',
@@ -100,9 +106,9 @@ class AuthController extends Controller
     'password'           => 'nullable|string|min:4',
 
         ]);
-        return response()->json(['data'=>$data]);
+       
         $dto = CompleteRegistrationDTO::from_request($data);
-
+ return response()->json(['data'=>$dto]);
         $response = $this->completeRegistrationAction->execute($dto);
 
         return response()->json([
@@ -114,22 +120,21 @@ class AuthController extends Controller
     /**
      * Initiate login - Step 1: Send OTP to phone
      */
-    public function initiateLogin(
-        Request $request,
-        InitiateLoginAction $initiateLoginAction
-    ): JsonResponse {
+    public function initiateLogin(Request $request): JsonResponse
+     {
         $request->validate([
             'phone_number' => 'required|string|max:20',
         ]);
+
 
         $dto = new InitiateAuthDTO(
             phone_number: $request->input('phone_number'),
             purpose: 'login'
         );
 
-        $response = $initiateLoginAction->execute($dto);
+        $response = $this->initiateLoginAction->execute($dto);
 
-        return response()->json($response);
+        return response()->json(['data',$response]);
     }
 
     /**
@@ -143,6 +148,7 @@ class AuthController extends Controller
             'phone_number' => 'required|string|max:20',
             'otp_code' => 'required|string|size:6',
             'session_token' => 'required|string',
+            'purpose' => 'required|string|in:registration,login',
         ]);
 
         $dto = VerifyOtpDTO::from_request($request);
@@ -155,16 +161,15 @@ class AuthController extends Controller
     /**
      * Complete login - Step 3: Authenticate user
      */
-    public function completeLogin(
-        Request $request,
-        CompleteLoginAction $completeLoginAction
-    ): JsonResponse {
+    public function completeLogin(Request $request, CompleteLoginAction $completeLoginAction): JsonResponse 
+    {
         $request->validate([
             'session_token' => 'required|string',
         ]);
-
+ 
+       
         $dto = CompleteLoginDTO::from_request($request);
-
+       
         $response = $completeLoginAction->execute($dto);
 
         return response()->json([

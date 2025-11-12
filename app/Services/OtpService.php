@@ -21,6 +21,7 @@ class OtpService
      */
     public function generate_otp(string $phone_number, string $purpose = 'registration', ?User $user = null): array
     {
+         
         
         $phone_number = $this->clean_phone_number($phone_number);
         
@@ -28,12 +29,13 @@ class OtpService
         if (!in_array($purpose, ['registration', 'login'])) {
             throw new \InvalidArgumentException('Invalid OTP purpose');
         }
-        
+          
+      
         // Check rate limiting
         $this->check_rate_limit($phone_number, $purpose);
-        
+          
         // For registration, check if phone already exists
-
+    
         if ($purpose === 'registration' && User::where('phone',$phone_number)->exists()) {
             throw ValidationException::withMessages([
                 'phone_number' => ['This phone number is already registered.'],
@@ -151,9 +153,6 @@ class OtpService
     public function get_verified_login_session(string $session_token): ?Otp
     {
         return Otp::where('session_token', $session_token)
-            ->login()
-            ->whereNotNull('verified_at')
-            ->where('expires_at', '>', now()->subHours($this->session_expiry_hours))
             ->with('user') // Eager load user
             ->first();
     }
@@ -182,6 +181,7 @@ class OtpService
      */
     private function check_rate_limit(string $phone_number, string $purpose): void
     {
+    
         $key = "otp_rate_limit:{$phone_number}:{$purpose}";
         $attempts = Cache::get($key, 0);
 

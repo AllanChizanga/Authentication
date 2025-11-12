@@ -8,11 +8,19 @@ use Illuminate\Validation\ValidationException;
 
 class AuthService
 {
-    public function __construct(
-        private TokenService $token_service,
-        private OtpService $otp_service,
-        private FileService $file_service,
-    ) {}
+
+    protected FileService $file_service;
+    protected OtpService $otp_service;
+    protected TokenService $token_service;
+
+    public function __construct(TokenService $token_service, OtpService $otp_service, FileService $file_service)
+    {
+        $this->token_service = $token_service;
+        $this->otp_service = $otp_service;
+        $this->file_service = $file_service;
+
+    }
+  
 
     /**
      * Register user with phone verification
@@ -67,8 +75,9 @@ class AuthService
      */
     public function create_auth_response(User $user): array
     {
+        
         $token = $this->token_service->create_auth_token($user);
-
+        
         return [
             'user' => [
                 'id' => $user->id,

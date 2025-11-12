@@ -18,6 +18,7 @@ class CompleteLoginAction
 
     public function execute(CompleteLoginDTO $dto): array
     {
+         
         // Verify session is valid for login
         $otpSession = $this->otp_service->get_verified_login_session($dto->session_token);
         
@@ -26,15 +27,15 @@ class CompleteLoginAction
         }
 
         $user = $otpSession->user;
-
+    
         // Mark phone as verified if not already
-        if (!$user->hasVerifiedPhone()) {
-            $user->markPhoneAsVerified();
-        }
-
+        // if (!$user->hasVerifiedPhone()) {
+        //     $user->markPhoneAsVerified();
+        // }
+               
         // Create authentication response
         $authResponse = $this->auth_service->create_auth_response($user);
-
+        
         // Clean up OTP session
         $otpSession->delete();
 

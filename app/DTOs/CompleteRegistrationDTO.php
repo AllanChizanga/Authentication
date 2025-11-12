@@ -11,8 +11,6 @@ class CompleteRegistrationDTO
 {
     public function __construct(
         public string $fullname,
-        public string $email,
-        public string $password,
         public string $national_id,
         public string $phone,
         public string $country,
@@ -35,8 +33,6 @@ class CompleteRegistrationDTO
     {
         return new self(
             fullname: $request->input('fullname'),
-            email: $request->input('email'),
-            password: $request->input('password'),
             national_id: $request->input('national_id', ''),
             phone: $request->input('phone', ''),
             country: $request->input('country', ''),
@@ -58,8 +54,6 @@ class CompleteRegistrationDTO
     {
         return [
             'name' => $this->fullname,
-            'email' => $this->email,
-            'password' => $this->password, // Will be hashed in service
             'national_id' => $this->national_id,
             'phone' => $this->phone,
             'country' => $this->country,

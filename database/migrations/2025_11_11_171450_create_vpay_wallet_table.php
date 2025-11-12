@@ -12,10 +12,18 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('vpay_wallet', function (Blueprint $table) {
-            $table->uuid('id');
-            $table->foreignUuid('user_id');
-            $table->string('currency', 10);
-            $table->decimal('amount', 15, 2);
+            $table->uuid('id')->primary();
+
+            // Wallet owner
+            $table->foreignUuid('user_id')->constrained('users')->cascadeOnDelete();
+
+            // Currency and balance
+            $table->string('currency', 3)->default('USD');
+            $table->decimal('balance', 24, 8)->default(0);
+
+            // Version for optimistic concurrency (helps prevent race conditions)
+            $table->unsignedBigInteger('version')->default(0);
+
             $table->timestamps();
         });
     }

@@ -17,7 +17,8 @@ class TokenService
      */
     public function create_auth_token(User $user): NewAccessToken
     {
-        return $user->createToken('auth-token', ['*'], now()->addYear()); // Token expires in 1 year
+        //dd($user->createToken('auth-token', ['*'], now()->addYear(5)));
+        return $user->createToken('auth-token', ['*'], now()->addYear(5));
     }
 
     /**

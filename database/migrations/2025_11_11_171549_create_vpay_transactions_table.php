@@ -12,15 +12,27 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('vpay_transactions', function (Blueprint $table) {
-            $table->uuid('id');
-            $table->foreignUuid('wallet_id');
-            $table->decimal('amount', 15, 2);
-            $table->enum('transaction_type', ['cashin', 'cashout']);
+            $table->uuid('id')->primary();
+
+            // Foreign wallet reference
+            $table->foreignUuid('wallet_id')->constrained('vpay_wallets')->cascadeOnDelete();
+
+            // Transaction type and details
+            $table->decimal('amount', 24, 8);
+            $table->enum('transaction_type', ['cashin', 'cashout', 'transfer'])->default('cashin');
             $table->text('notes')->nullable();
-            $table->decimal('balance_before_transaction', 15, 2);
-            $table->decimal('current_balance_after_transaction', 15, 2);
-            $table->foreignUuid('sender_id')->nullable();
-            $table->foreignUuid('receiver_id')->nullable();
+
+            // Audit trail of balances
+            $table->decimal('balance_before', 24, 8);
+            $table->decimal('balance_after', 24, 8);
+
+            // Optional sender/receiver (for transfers)
+            $table->foreignUuid('sender_id')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignUuid('receiver_id')->nullable()->constrained('users')->nullOnDelete();
+
+            // Optional idempotency key to prevent duplicate transactions
+            $table->string('idempotency_key')->nullable()->index();
+
             $table->timestamps();
         });
     }
