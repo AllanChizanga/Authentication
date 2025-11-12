@@ -10,7 +10,8 @@ class AuthService
 {
     public function __construct(
         private TokenService $token_service,
-        private OtpService $otp_service
+        private OtpService $otp_service,
+        private FileService $file_service,
     ) {}
 
     /**
@@ -18,13 +19,46 @@ class AuthService
      */
     public function register_user_with_phone(array $user_data, string $phone_number): User
     {
-        return User::create([
-            'name' => $user_data['name'],
-            'email' => $user_data['email'],
-            'phone_number' => $phone_number,
-            'password' => Hash::make($user_data['password']),   
+            // Prepare attributes for creation
+    $attributes = [
+        'fullname'      => trim($user_data['fullname']),
+        'email'         => strtolower($user_data['email']),
+        'phone'         => $phone_number,
+        'city' => $user_data['city'],
+        'country' => $user_data['country'],
+        'profile_photo' => null, // default until we upload
+        'id_photo' => null, // default until we upload
+        'work_location' => $user_data['work_location'] ?? null,
+        'home_location' => $user_data['home_location'] ?? null,
+        'gender' => $user_data['gender'],
+        'payment_preference' => $user_data['payment_preference'] ?? null,
+        'is_activated' => $user_data['is_activated'] ?? false,
+        'badge' => $user_data['badge'] ?? null,
+    ];
 
-            'phone_verified_at' => now(), // Mark phone as verified
+    // Handle file upload (if provided)
+   if (isset($user_data['profile_photo']) && $user_data['profile_photo'] instanceof \Illuminate\Http\UploadedFile) {
+    $attributes['profile_photo'] = $this->file_service->upload_file($user_data['profile_photo']);
+}
+  if (isset($user_data['id_photo']) && $user_data['id_photo'] instanceof \Illuminate\Http\UploadedFile) {
+    $attributes['id_photo'] = $this->file_service->upload_file($user_data['id_photo']);
+}
+
+        return User::create([
+            'fullname' => $attributes['fullname'],
+            'email' => $attributes['email'],
+            'phone' => $attributes['phone'],
+            'city' => $attributes['city'],
+            'country' => $attributes['country'],
+            'profile_photo' => $attributes['profile_photo'],
+            'id_photo' => $attributes['id_photo'],
+            'work_location' => $attributes['work_location'],
+            'home_location' => $attributes['home_location'],
+            'gender' => $attributes['gender'],
+            'payment_preference' => $attributes['payment_preference'],  
+            'is_activated' => $attributes['is_activated'],
+            'badge' => $attributes['badge'],    
+            'password' => isset($user_data['password']) ? Hash::make($user_data['password']) : null,
         ]);
     }
 

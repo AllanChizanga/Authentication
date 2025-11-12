@@ -16,7 +16,7 @@ return new class extends Migration
             $table->foreignUuid('driver_vehicle_id');
             $table->string('origin_name');
             $table->string('destination_name');
-            $table->timestamp('departure_time');
+            $table->time('departure_time');
             $table->date('date_of_departure');
             $table->integer('available_seats');
             $table->string('origin_coordinations')->nullable();

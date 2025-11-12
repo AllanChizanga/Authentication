@@ -16,13 +16,15 @@ class VerifyRegistrationOtpAction
 
     public function execute(VerifyOtpDTO $dto): array
     {
+        
+        
         $otpVerification = $this->otp_service->verify_otp(
             phone_number: $dto->phone_number,
             otp_code: $dto->otp_code,
             session_token: $dto->session_token,
             purpose: 'registration'
         );
-       
+      
 
         return [
             'session_token' => $otpVerification->session_token,

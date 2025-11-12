@@ -91,21 +91,22 @@ class OtpService
     /**
      * Verify OTP for registration or login
      */
-    public function verify_otp(string $phone_number, string $otp_code, string $session_token, string $purpose): Otp
+    public function verify_otp(string $phone_number, string $otp_code, string $session_token, string $purpose)
     {
-    
+       
+        
         $phone_number = $this->clean_phone_number($phone_number);
         
         $otp_verification = Otp::where('session_token', $session_token)
             ->where('phone_number', $phone_number)
             ->first();
-
+        
         if (!$otp_verification) {
             throw ValidationException::withMessages([
                 'otp_code' => ['Invalid or expired OTP.'],
             ]);
         }
-
+      
        
         // Increment attempts
         $otp_verification->increment_attempts();

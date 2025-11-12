@@ -22,7 +22,9 @@ class RegisterUserRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'phone' => ['required', 'string', 'max:20'],
+            'session_token' => ['required', 'string'],
+            'fullname' => ['required', 'string', 'max:255'],
+            'phone' => ['nullable', 'string', 'max:20'],
             'country' => ['required', 'string', 'max:100'],
             'city' => ['required', 'string', 'max:100'],
             'email' => ['nullable', 'string', 'email', 'max:255', 'unique:users,email'],
@@ -30,11 +32,11 @@ class RegisterUserRequest extends FormRequest
             'id_photo' => ['nullable', 'image', 'max:2048'],
             'work_location' => ['nullable', 'string', 'max:255'],
             'home_location' => ['nullable', 'string', 'max:255'],
-            'gender' => ['required', 'in:male,female,other'],
+            'gender' => ['required', 'in:male,female'],
             'payment_preference' => ['nullable', 'string', 'max:50'],
             'is_activated' => ['boolean'],
             'badge' => ['nullable', 'string', 'max:50'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'password' => ['nullable', 'string', 'min:4', 'confirmed'],
         ];
        
     }

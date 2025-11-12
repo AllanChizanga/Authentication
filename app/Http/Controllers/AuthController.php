@@ -16,6 +16,7 @@ use App\DTOs\{
     CompleteRegistrationDTO,
     CompleteLoginDTO
 };
+use App\Http\Requests\RegisterUserRequest;
 use App\Services\TokenService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -26,10 +27,13 @@ class AuthController extends Controller
     protected $initiateRegistrationAction;
     protected $verifyRegistrationOtpAction;
 
-    public function __construct(InitiateRegistrationAction $initiateRegistrationAction, VerifyRegistrationOtpAction $verifyRegistrationOtpAction)
+    protected $completeRegistrationAction;
+
+    public function __construct(InitiateRegistrationAction $initiateRegistrationAction, VerifyRegistrationOtpAction $verifyRegistrationOtpAction, CompleteRegistrationAction $completeRegistrationAction)
     {
         $this->initiateRegistrationAction = $initiateRegistrationAction;
         $this->verifyRegistrationOtpAction = $verifyRegistrationOtpAction;
+        $this->completeRegistrationAction = $completeRegistrationAction;
 
     }
     /**
@@ -68,7 +72,7 @@ class AuthController extends Controller
         $dto = VerifyOtpDTO::from_request($request);
         
         $response = $this->verifyRegistrationOtpAction->execute($dto);
-        
+
         return response()->json(['message' => $response]);
        
     }
@@ -76,18 +80,30 @@ class AuthController extends Controller
     /**
      * Complete registration - Step 3: Create user account
      */
-    public function completeRegistration(Request $request, CompleteRegistrationAction $completeRegistrationAction ): JsonResponse 
+    public function completeRegistration(Request $request)
     {
-        $request->validate([
-            'session_token' => 'required|string',
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'password' => ['required', 'confirmed', Password::defaults()],
+        $data = $request->validate([
+    'session_token'      => 'required|string',
+    'fullname'           => 'required|string|max:255',
+    'phone'              => 'nullable|string|max:20',
+    'country'            => 'required|string|max:100',
+    'city'               => 'required|string|max:100',
+    'email'              => 'nullable|string|email|max:255|unique:users,email',
+    'profile_photo'      => 'nullable|image|max:2048',
+    'id_photo'           => 'nullable|image|max:2048',
+    'work_location'      => 'nullable|string|max:255',
+    'home_location'      => 'nullable|string|max:255',
+    'gender'             => 'required|in:male,female',
+    'payment_preference' => 'nullable|string|max:50',
+    'is_activated'       => 'boolean',
+    'badge'              => 'nullable|string|max:50',
+    'password'           => 'nullable|string|min:4',
+
         ]);
+        return response()->json(['data'=>$data]);
+        $dto = CompleteRegistrationDTO::from_request($data);
 
-        $dto = CompleteRegistrationDTO::from_request($request);
-
-        $response = $completeRegistrationAction->execute($dto);
+        $response = $this->completeRegistrationAction->execute($dto);
 
         return response()->json([
             'message' => 'Registration completed successfully',
