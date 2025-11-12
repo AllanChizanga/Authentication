@@ -19,9 +19,9 @@ Route::prefix('auth')->group(function () {
     Route::post('/login/complete', [AuthController::class, 'completeLogin']);
 
     //Check Authentication
-    Route::post('/verify', [CheckAuthController::class, 'checkAuth']);
+    Route::post('/verify-token', [CheckAuthController::class, 'checkAuth']);
     Route::get('/verify-driver', [CheckAuthController::class, 'isDriver']);
-    Route::get('/verify-activate',[CheckAuthController::class, 'isActivated']);
+    Route::get('/verify-isactive',[CheckAuthController::class, 'isActivated']);
     Route::get('/verify-badge',[CheckAuthController::class, 'getBadge']);
     
     // Protected routes
