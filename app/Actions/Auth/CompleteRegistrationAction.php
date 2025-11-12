@@ -18,9 +18,12 @@ class CompleteRegistrationAction
 
     public function execute(CompleteRegistrationDTO $dto): array
     {
+        
+        return[$dto->session_token];
         // Verify session is valid for registration
         $otp_session = $this->otp_service->get_verified_registration_session($dto->session_token);
-        
+       
+
         if (!$otp_session) {
             throw new \Exception('Invalid or expired session. Please start registration again.');
         }

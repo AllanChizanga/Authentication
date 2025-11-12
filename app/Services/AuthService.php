@@ -126,4 +126,57 @@ class AuthService
 
         return $user;
     }
+
+     /**
+     * Validate token and check if user is logged in
+     */
+    public function validateToken(string $token): bool
+    {
+        try {
+            // Check database session tokens
+            $user = User::where('session_token', $token)
+                       ->where('is_active', true)
+                       ->first();
+
+            if (!$user) {
+                return false;
+            }
+
+            return true;
+
+        } catch (\Exception $e) {
+            \Log::error('Token validation failed: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Get user from token
+     */
+    public function getUserFromToken(string $token): ?array
+    {
+        try {
+            $user = User::where('session_token', $token)
+                       ->where('is_active', true)
+                       ->first();
+
+            if (!$user) {
+                return null;
+            }
+
+            return [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'phone' => $user->phone,
+                'is_activated' => $user->is_activated,
+                'last_activity_at' => $user->last_activity_at,
+                'profile_photo' => $user->profile_photo
+            ];
+
+        } catch (\Exception $e) {
+            \Log::error('Get user from token failed: ' . $e->getMessage());
+            return null;
+        }
+    }
 }

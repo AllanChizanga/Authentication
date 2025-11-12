@@ -1,0 +1,133 @@
+<?php
+
+namespace App\Services;
+
+use App\DataTransferObjects\CreateDriverDataDTO;
+use App\Models\Driver;
+use Illuminate\Support\Str;
+
+class DriverService
+{
+    public function __construct(
+        private FileService $fileService
+    ) {}
+
+    public function createDriver(CreateDriverDataDTO $data): Driver
+    {
+        $driverData = [
+            'user_id' => $data->user_id,
+            'license_url' => $data->license_document ? $this->fileService->upload_file($data->license_document) : null,
+            'proof_of_residence_url' => $data->proof_of_residence ? $this->fileService->upload_file($data->proof_of_residence) : null,
+            'police_clearance_letter_url' => $data->police_clearance_letter ? $this->fileService->upload_file($data->police_clearance_letter) : null,
+            'is_activated' => $data->is_activated,
+            'badge' => $data->badge,
+            'number_of_completed_rides' => 0,
+        ];
+
+        return Driver::create($driverData);
+    }
+
+    public function updateDriver(Driver $driver, CreateDriverDataDTO $data): Driver
+    {
+        $updateData = [
+            'is_activated' => $data->is_activated,
+            'badge' => $data->badge,
+        ];
+
+        // Update documents only if new ones are provided
+        if ($data->license_document) {
+            $this->deleteDriverDocument($driver->license_url);
+            $updateData['license_url'] = $this->fileService->upload_file($data->license_document);
+        }
+
+        if ($data->proof_of_residence) {
+            $this->deleteDriverDocument($driver->proof_of_residence_url);
+            $updateData['proof_of_residence_url'] = $this->fileService->upload_file($data->proof_of_residence);
+        }
+
+        if ($data->police_clearance_letter) {
+            $this->deleteDriverDocument($driver->police_clearance_letter_url);
+            $updateData['police_clearance_letter_url'] = $this->fileService->upload_file($data->police_clearance_letter);
+        }
+
+        $driver->update($updateData);
+
+        return $driver->fresh();
+    }
+
+    public function incrementCompletedRides(Driver $driver): void
+    {
+        $driver->increment('number_of_completed_rides');
+        
+        // Update badge based on completed rides
+        $this->updateDriverBadge($driver);
+    }
+
+    protected function updateDriverBadge(Driver $driver): void
+    {
+        $badge = match(true) {
+            $driver->number_of_completed_rides >= 100 => 'green',
+            $driver->number_of_completed_rides >= 50 => 'yellow',
+            default => 'red',
+        };
+
+        if ($driver->badge !== $badge) {
+            $driver->update(['badge' => $badge]);
+        }
+    }
+
+    protected function deleteDriverDocument(?string $fileUrl): void
+    {
+        if (!$fileUrl) {
+            return;
+        }
+
+        // Extract the path from the full URL
+        $path = $this->extractFilePathFromUrl($fileUrl);
+        $this->fileService->delete_file($path);
+    }
+
+    protected function extractFilePathFromUrl(string $url): string
+    {
+        // Convert full URL to relative path
+        // From: http://localhost/uploads/1234567890_abc.jpg
+        // To: /uploads/1234567890_abc.jpg
+        $parsedUrl = parse_url($url);
+        return $parsedUrl['path'] ?? $url;
+    }
+
+    /**
+     * Delete driver and all associated documents
+     */
+    public function deleteDriver(Driver $driver): bool
+    {
+        try {
+            // Delete all associated files
+            $this->deleteDriverDocument($driver->license_url);
+            $this->deleteDriverDocument($driver->proof_of_residence_url);
+            $this->deleteDriverDocument($driver->police_clearance_letter_url);
+
+            // Delete the driver record
+            return $driver->delete();
+        } catch (\Exception $e) {
+            \Log::error('Failed to delete driver: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Get driver status information
+     */
+    public function getDriverStatus(Driver $driver): array
+    {
+        return [
+            'is_activated' => $driver->is_activated,
+            'badge' => $driver->badge,
+            'completed_rides' => $driver->number_of_completed_rides,
+            'has_license' => !empty($driver->license_url),
+            'has_proof_of_residence' => !empty($driver->proof_of_residence_url),
+            'has_police_clearance' => !empty($driver->police_clearance_letter_url),
+            'can_accept_rides' => $driver->canAcceptRides(),
+        ];
+    }
+}

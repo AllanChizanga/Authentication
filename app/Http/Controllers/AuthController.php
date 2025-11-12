@@ -75,6 +75,7 @@ class AuthController extends Controller
         $dto = VerifyOtpDTO::from_request($request);
         
         $response = $this->verifyRegistrationOtpAction->execute($dto);
+        
 
         return response()->json(['message' => $response]);
        
@@ -83,39 +84,22 @@ class AuthController extends Controller
     /**
      * Complete registration - Step 3: Create user account
      */
-    public function completeRegistration(Request $request)
-    {
-        
+    public function completeRegistration(RegisterUserRequest $request)
+{
 
-        $data = $request->validate([
-    'session_token'      => 'required',
-    'national_id'        => 'nullable|string|max:50',
-    'fullname'           => 'required|string|max:255',
-    'phone'              => 'nullable|string|max:20',
-    'country'            => 'required|string|max:100',
-    'city'               => 'required|string|max:100',
-    'email'              => 'nullable|string|email|max:255|unique:users,email',
-    'profile_photo'      => 'nullable',
-    'id_photo'           => 'nullable',
-    'work_location'      => 'nullable|string|max:255',
-    'home_location'      => 'nullable|string|max:255',
-    'gender'             => 'required|in:male,female',
-    'payment_preference' => 'nullable|string|max:50',
-    'is_activated'       => 'boolean',
-    'badge'              => 'nullable|string|max:50',
-    'password'           => 'nullable|string|min:4',
 
-        ]);
-       
-        $dto = CompleteRegistrationDTO::from_request($data);
- return response()->json(['data'=>$dto]);
-        $response = $this->completeRegistrationAction->execute($dto);
-
-        return response()->json([
-            'message' => 'Registration completed successfully',
-            ...$response
-        ], 201);
-    }
+    $data = $request->validated();
+    
+    // Use from_array instead of from_request
+    $dto = CompleteRegistrationDTO::from_array($data);
+   
+    $response = $this->completeRegistrationAction->execute($dto);
+    return response()->json(['data'=>$response]);
+    return response()->json([
+        'message' => 'Registration completed successfully',
+        ...$response
+    ], 201);
+}
 
     /**
      * Initiate login - Step 1: Send OTP to phone
