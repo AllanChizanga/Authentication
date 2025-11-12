@@ -3,7 +3,9 @@
 namespace App\Services;
 
 use App\Models\User;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Hash;
+use Laravel\Sanctum\PersonalAccessToken;
 use Illuminate\Validation\ValidationException;
 
 class AuthService
@@ -127,38 +129,73 @@ class AuthService
         return $user;
     }
 
-     /**
-     * Validate token and check if user is logged in
-     */
-    public function validateToken(string $token): bool
+  public function validateToken(string $token): bool
     {
         try {
-            // Check database session tokens
-            $user = User::where('session_token', $token)
-                       ->where('is_active', true)
-                       ->first();
+            Log::debug('Sanctum Token Validation', ['token_prefix' => substr($token, 0, 10) . '...']);
 
-            if (!$user) {
+            // Find the token in personal_access_tokens table
+            $accessToken = PersonalAccessToken::findToken($token);
+            
+            if (!$accessToken) {
+                Log::debug('Sanctum: Token not found in personal_access_tokens table');
                 return false;
             }
+
+            // Check if token is expired
+            if ($accessToken->expires_at && $accessToken->expires_at->isPast()) {
+                Log::debug('Sanctum: Token expired', ['expires_at' => $accessToken->expires_at]);
+                $accessToken->delete(); // Clean up expired token
+                return false;
+            }
+
+            // Get the user associated with the token
+            $user = $accessToken->tokenable;
+            
+            if (!$user) {
+                Log::debug('Sanctum: No user associated with token');
+                return false;
+            }
+
+            // Check if user is active/activated
+            if (isset($user->is_activated) && !$user->is_activated) {
+                Log::debug('Sanctum: User is not activated', ['user_id' => $user->id]);
+                return false;
+            }
+
+            if (isset($user->is_active) && !$user->is_active) {
+                Log::debug('Sanctum: User is not active', ['user_id' => $user->id]);
+                return false;
+            }
+
+            // Update last used at timestamp
+            $accessToken->forceFill([
+                'last_used_at' => now(),
+            ])->save();
+
+            Log::debug('Sanctum: Token validated successfully', [
+                'user_id' => $user->id,
+                'token_id' => $accessToken->id
+            ]);
 
             return true;
 
         } catch (\Exception $e) {
-            \Log::error('Token validation failed: ' . $e->getMessage());
+            Log::error('Sanctum token validation failed: ' . $e->getMessage());
             return false;
         }
     }
 
-    /**
-     * Get user from token
-     */
     public function getUserFromToken(string $token): ?array
     {
         try {
-            $user = User::where('session_token', $token)
-                       ->where('is_active', true)
-                       ->first();
+            $accessToken = PersonalAccessToken::findToken($token);
+            
+            if (!$accessToken) {
+                return null;
+            }
+
+            $user = $accessToken->tokenable;
 
             if (!$user) {
                 return null;
@@ -166,17 +203,63 @@ class AuthService
 
             return [
                 'id' => $user->id,
-                'name' => $user->name,
+                'name' => $user->fullname, // Using fullname from your fillable array
                 'email' => $user->email,
                 'phone' => $user->phone,
-                'is_activated' => $user->is_activated,
-                'last_activity_at' => $user->last_activity_at,
-                'profile_photo' => $user->profile_photo
+                'country' => $user->country,
+                'city' => $user->city,
+                'is_activated' => $user->is_activated ?? false,
+                'badge' => $user->badge ?? 'red',
+                'profile_photo' => $user->profile_photo,
+                'token_id' => $accessToken->id,
+                'token_name' => $accessToken->name,
+                'last_used_at' => $accessToken->last_used_at,
+                'expires_at' => $accessToken->expires_at,
             ];
 
         } catch (\Exception $e) {
-            \Log::error('Get user from token failed: ' . $e->getMessage());
+            Log::error('Get user from Sanctum token failed: ' . $e->getMessage());
             return null;
         }
     }
+
+    /**
+     * Get detailed token information for debugging
+     */
+    public function getTokenDetails(string $token): ?array
+    {
+        try {
+            $accessToken = PersonalAccessToken::findToken($token);
+            
+            if (!$accessToken) {
+                return null;
+            }
+
+            $user = $accessToken->tokenable;
+
+            return [
+                'token' => [
+                    'id' => $accessToken->id,
+                    'name' => $accessToken->name,
+                    'abilities' => $accessToken->abilities,
+                    'last_used_at' => $accessToken->last_used_at,
+                    'expires_at' => $accessToken->expires_at,
+                    'created_at' => $accessToken->created_at,
+                ],
+                'user' => $user ? [
+                    'id' => $user->id,
+                    'fullname' => $user->fullname,
+                    'email' => $user->email,
+                    'phone' => $user->phone,
+                    'is_activated' => $user->is_activated,
+                    'badge' => $user->badge,
+                ] : null
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('Get token details failed: ' . $e->getMessage());
+            return null;
+        }
+    }
+
 }
