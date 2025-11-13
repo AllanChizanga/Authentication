@@ -196,6 +196,6 @@ public function completeRegistration(RegisterUserRequest $request)
     public function checkAuth(): JsonResponse
     {
         $user = $this->user_service->check_token();
-        return response()->json($user);
+        return response()->json(['data' => $user]);
     }
 }

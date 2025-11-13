@@ -18,7 +18,17 @@ class UserService
 
     public function check_token(){
         $user=Auth()->user();
-        return ['authenticated' => true];
+        $is_driver = $user->driver()->exists()? true : false;
+        $is_activated = $user->is_activated;
+        $badge = $user->badge;
+        
+        return ['authenticated' => true,
+                'user' => [
+                    'is_activated' => $is_activated,
+                    'badge' => $badge,
+                    'is_driver' => $is_driver
+                ]
+            ];
    
     }
     

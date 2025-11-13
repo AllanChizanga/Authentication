@@ -95,4 +95,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(Otp::class);
     }
+
+    public function driver()
+    {
+        return $this->hasOne(Driver::class);
+    }
 }
