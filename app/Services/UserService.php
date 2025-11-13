@@ -22,13 +22,7 @@ class UserService
         $is_activated = $user->is_activated;
         $badge = $user->badge;
         
-        return ['authenticated' => true,
-                'user' => [
-                    'is_activated' => $is_activated,
-                    'badge' => $badge,
-                    'is_driver' => $is_driver
-                ]
-            ];
+        return ['authenticated' => true,'is_activated' => $is_activated,'badge' => $badge,'is_driver' => $is_driver ];
    
     }
     

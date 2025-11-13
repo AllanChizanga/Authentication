@@ -5,10 +5,11 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 
  Route::post('/login', function () {
-    return response()->json(['message' => 'endpoint disabled'], 200);
+    return response()->json(['message' => 'Login endpoint disabled'], 200);
 })->name('login');
 
-  Route::prefix('auth')->group(function () {
+
+Route::prefix('auth')->group(function () {
     // Registration flow
     Route::post('/register/initiate', [AuthController::class, 'initiateRegistration']);
     Route::post('/register/verify-otp', [AuthController::class, 'verifyRegistrationOtp']);
