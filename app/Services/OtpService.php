@@ -27,7 +27,7 @@ class OtpService
         
         // Validate purpose
         if (!in_array($purpose, ['registration', 'login'])) {
-            throw new \InvalidArgumentException('Invalid OTP purpose');
+            return['message'=>'Invalid OTP purpose?'];
         }
           
       
@@ -37,18 +37,18 @@ class OtpService
         // For registration, check if phone already exists
     
         if ($purpose === 'registration' && User::where('phone',$phone_number)->exists()) {
-            throw ValidationException::withMessages([
-                'phone_number' => ['This phone number is already registered.'],
-            ]);
+            return[
+                'phone_number' => 'This phone number is already registered.'
+            ];
         }
 
         // For login, check if user exists and get user ID
         if ($purpose === 'login') {
             $user = User::where('phone',$phone_number)->first();
             if (!$user) {
-                throw ValidationException::withMessages([
-                    'phone_number' => ['No account found with this phone number.'],
-                ]);
+                return[
+                    'phone_number' => 'No account found with this phone number.'
+                ];
             }
         }
 
@@ -117,9 +117,9 @@ class OtpService
         // Check if max attempts exceeded
         if ($otp_verification->attempts >= $this->max_attempts) {
             $otp_verification->delete();
-            throw ValidationException::withMessages([
-                'otp_code' => ['Too many attempts. Please request a new OTP.'],
-            ]);
+            return[
+                'otp_code' => 'Too many attempts. Please request a new OTP.',
+            ];
         }
         
         // Verify OTP code

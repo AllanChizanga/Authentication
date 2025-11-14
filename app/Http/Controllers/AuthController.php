@@ -126,8 +126,14 @@ public function completeRegistration(RegisterUserRequest $request)
         );
 
         $response = $this->initiateLoginAction->execute($dto);
-
-        return response()->json(['data',$response]);
+        if (empty($response['otp_code'])) {
+    return response()->json([
+        'success' => false,
+        'message' => 'Authentication failed',
+        'errors' => $response
+    ], 401);
+}
+        return response()->json(['data',$response],200);
     }
 
     /**

@@ -27,13 +27,13 @@ class DriverService
         return Driver::create($driverData);
     }
 
-    public function updateDriver(Driver $driver, CreateDriverDataDTO $data): Driver
+    public function updateDriver($data)
     {
+        $driver = Driver::where('user_id', $data->user_id)->firstOrFail();
         $updateData = [
-            'is_activated' => $data->is_activated,
-            'badge' => $data->badge,
+            'is_activated' => $data->is_activated ?? '$driver->is_activated,',
+            'badge' => $data->badge ?? $driver->badge,
         ];
-
         // Update documents only if new ones are provided
         if ($data->license_document) {
             $this->deleteDriverDocument($driver->license_url);
@@ -50,9 +50,9 @@ class DriverService
             $updateData['police_clearance_letter_url'] = $this->fileService->upload_file($data->police_clearance_letter);
         }
 
-        $driver->update($updateData);
+        $driver = $driver->update($updateData);
 
-        return $driver->fresh();
+        return $driver;
     }
 
     public function incrementCompletedRides(Driver $driver): void

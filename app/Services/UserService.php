@@ -2,75 +2,49 @@
 
 namespace App\Services;
 
-use Illuminate\Http\JsonResponse;
-use Laravel\Sanctum\PersonalAccessToken;
+use App\Actions\User\GetUserAction;
+use App\Actions\User\UpdateUserAction;
+use App\Actions\User\DeleteUserAction;
+use App\DTOs\User\UserData;
+use App\DTOs\User\UpdateUserData;
 
 class UserService
 {
-    // User-related business logic can be implemented here
-
-    public function get_user()
+    public function __construct(
+        private GetUserAction $getUserAction,
+        private UpdateUserAction $updateUserAction,
+        private DeleteUserAction $deleteUserAction,
+    ) {}
+    
+    public function getUser(int $userId): UserData
     {
-        $user=Auth()->user();
-        return $user;
-        // Logic to retrieve user by ID
-    }
-
-    public function check_token(){
-        $user=Auth()->user();
-        $is_driver = $user->driver()->exists()? true : false;
-        $is_activated = $user->is_activated;
-        $badge = $user->badge;
-        
-        return ['authenticated' => true,'is_activated' => $is_activated,'badge' => $badge,'is_driver' => $is_driver ];
-   
+        return $this->getUserAction->execute($userId);
     }
     
-    public function check_token_test($token)
+    public function getAuthenticatedUser(): UserData
     {
-    $token = $token->bearerToken() ?? $token->input('token');
+        return $this->getUserAction->executeForAuthenticated();
+    }
     
-
-    if (!$token) {
-        return response()->json(false);
+    public function updateUser(int $userId, UpdateUserData $data): UserData
+    {
+        return $this->updateUserAction->execute($userId, $data);
+    }
+    
+    public function updateAuthenticatedUser(UpdateUserData $data): UserData
+    {
+        return $this->updateUserAction->executeForAuthenticated($data);
+    }
+    
+    public function deleteUser(int $userId): bool
+    {
+        return $this->deleteUserAction->execute($userId);
+    }
+    
+    public function deleteAuthenticatedUser(): bool
+    {
+        return $this->deleteUserAction->executeForAuthenticated();
     }
 
-    try {
-        $accessToken = PersonalAccessToken::findToken($token);
-        
-        if (!$accessToken) {
-            return response()->json(false);
-        }
-
-        if ($accessToken->expires_at && $accessToken->expires_at->isPast()) {
-            $accessToken->delete();
-            return response()->json(false);
-        }
-
-        $user = $accessToken->tokenable_id;
-        
-        if (!$user) {
-            return response()->json(false);
-        }
-
-        // Update last used
-        $accessToken->forceFill([
-            'last_used_at' => now(),
-        ])->save();
-
-        return response()->json([
-            'authenticated' => true,
-            'user' => [
-                'id' => $user->id,
-                'fullname' => $user->fullname,
-                'is_activated' => $user->is_activated,
-                'badge' => $user->badge
-            ]
-        ]);
-
-    } catch (\Exception $e) {
-        return response()->json(false);
-    }
-    }
     
 }
