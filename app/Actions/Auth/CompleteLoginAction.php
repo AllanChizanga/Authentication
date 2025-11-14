@@ -23,7 +23,7 @@ class CompleteLoginAction
         $otpSession = $this->otp_service->get_verified_login_session($dto->session_token);
         
         if (!$otpSession || !$otpSession->user) {
-            throw new \Exception('Invalid or expired session. Please start login again.');
+           return['error'=>'Invalid or expired session. Please start login again.'];
         }
 
         $user = $otpSession->user;

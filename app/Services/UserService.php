@@ -64,6 +64,6 @@ class UserService
         else {
             $is_driver = true;
         }   
-        return ['is_authenticated'=>$is_authenticated,'is_activated' => $is_activated, 'badge' => $badge, 'is_driver' => $is_driver];
+        return ['is_authenticated'=>$is_authenticated,'is_activated' => $is_activated, 'badge' => $badge, 'is_driver' => $is_driver, 'user'=>$user];
     }
 }
