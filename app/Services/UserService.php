@@ -7,6 +7,7 @@ use App\Actions\User\UpdateUserAction;
 use App\Actions\User\DeleteUserAction;
 use App\DTOs\User\UserData;
 use App\DTOs\User\UpdateUserData;
+use App\Models\Driver;
 
 class UserService
 {
@@ -46,5 +47,23 @@ class UserService
         return $this->deleteUserAction->executeForAuthenticated();
     }
 
+    public function get_user()
+    {
+        return auth()->user();
+    }
     
+    public function check_token(){
+        $user = auth()->user();
+        $is_authenticated = $user ? true : false;
+        $badge = $user->badge_number;
+        $is_activated = $user->is_activated;
+        $is_driver = Driver::where('user_id', $user->id)->first();
+        if (!$is_driver) {
+            $is_driver = false;
+        }
+        else {
+            $is_driver = true;
+        }   
+        return ['is_authenticated'=>$is_authenticated,'is_activated' => $is_activated, 'badge' => $badge, 'is_driver' => $is_driver];
+    }
 }
