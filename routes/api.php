@@ -36,7 +36,7 @@ Route::prefix('auth')->group(function () {
    });
 
 /// Driver routes
-   Route::prefix('driver')->middleware('auth:sanctum')->group(function () {
+   Route::prefix('driver')->middleware('auth:sanctum','driver')->group(function () {
         Route::post('/register-driver', [DriverController::class, 'register_driver']);
         Route::post('/update-driver', [DriverController::class, 'update_driver']);  
         Route::get('/get-driver', [DriverController::class, 'get_driver']);  

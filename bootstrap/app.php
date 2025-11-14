@@ -1,9 +1,10 @@
 <?php
 
+use App\Http\Middleware\DriverOnly;
 use Illuminate\Foundation\Application;
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
-use Illuminate\Auth\AuthenticationException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -12,7 +13,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        // API-only middleware configuration
+          $middleware->alias([
+            'driver' => DriverOnly::class,
+            // ... other middleware aliases
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->render(function (AuthenticationException $e, $request) {
